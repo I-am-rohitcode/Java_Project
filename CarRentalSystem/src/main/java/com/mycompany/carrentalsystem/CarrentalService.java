@@ -4,6 +4,8 @@
 
  */
 package com.mycompany.carrentalsystem;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -46,70 +48,94 @@ public class CarrentalService {
     public void addCustomer(Customer cust){
         customers.add(cust); 
     }
-    
-    
     public void addCars(Car car){
         this.car.add(car);
     }
 
-    @SuppressWarnings("resource")
+ @SuppressWarnings("resource")
     public void bookingcar(){
-        Scanner ru=new Scanner(System.in);
-        System.out.println("==For Renting a CAr please provide below details==");
-        System.out.print("Enetr your name :");
-        String CustName=ru.nextLine();
-        System.out.print("Enter the CarID you want to rent :");
-        String carid=ru.nextLine();
-        System.out.print("Enetr the number of days for rental :");
-        int days=ru.nextInt();
-        Customer customer = new Customer("CUSTOMER-"+(customers.size() + 1), CustName);
-        addCustomer(customer);
-        Optional<Car> optionCar= car.stream().filter(c->c.getCarId().equalsIgnoreCase(carid)&&c.getNoOfAvailableCar()>0).findAny();
-        if (optionCar.isEmpty()) {
-            System.out.println("Car is not available.Please try to book another Car!!");
-            Menu();
-            return ;
+        try{
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+            Scanner tp = new Scanner(System.in); 
+                System.out.println("\n==For Renting a Car please provide below details==");
+                System.out.print("\nEnter your Customer ID(or leave blank if new Customer): ");
+                String customerid=tp.nextLine().trim();
+                Customer customer = null;
+                if (!customerid.isEmpty()) {
+                    //if the Customer id Exist
+                    Optional<Customer> optionalcustomer=customers.stream().filter(c->c.getId().equalsIgnoreCase(customerid)).findAny();
+                    if (optionalcustomer.isPresent()) {
+                        customer = optionalcustomer.get();
+                        System.out.println("Welcome back,"+customer.getName()+" !");
+                        
+                    } else {
+                        System.out.println("Customer ID not found.Please try again or register as a new customer.");
+                    }
+                } else {
+                    System.out.print("Enetr your name :");
+                    String CustName=tp.nextLine();
+                    customer = new Customer("CUSTOMER-"+(customers.size() + 1), CustName);
+                    addCustomer(customer);
+                    System.out.println("Welcome ,"+customer.getName()+" !");
+                    System.out.println("Your Customer ID is : "+customer.getId());
+                }
+                System.out.print("Enter the CarID you want to rent :");
+                String carid=tp.nextLine();
+                System.out.print("Enetr the number of days for rental :");
+                int days=tp.nextInt();
+                
+                Optional<Car> optionCar= car.stream().filter(c->c.getCarId().equalsIgnoreCase(carid)&&c.getNoOfAvailableCar()>0).findAny();
+                if (optionCar.isEmpty()) {
+                    System.out.println("Car is not available.Please try to book another Car!!");
+                    Menu(); 
+                }
+                Car selectedCar=optionCar.get();
+                System.out.println("===================================================");
+                System.out.println("                  BILL RECEIPT                     ");
+                System.out.println("===================================================");
+                System.out.printf("%-20s: %s%n","Customer ID",customer.getId());
+                System.out.printf("%-20s: %s%n","Customer Name",customer.getName());
+                System.out.printf("%-20s: %s%n","Car Brand",selectedCar.getBrand());
+                System.out.printf("%-20s: %s%n","Car Model",selectedCar.getModel());
+                System.out.printf("%-20s: %s%n","Car Perday price",selectedCar.getPricePerDay());
+                System.out.printf("%-20s: %s%n","Rental Days",days);
+                System.out.printf("%-20s:%s%n","Booking Date",LocalDate.now().format(formatter));
+                System.out.printf("%-20s:%s%n","Returning Date",LocalDate.now().plusDays(days).format(formatter));
+                System.out.printf("%-20s: %s%n","Total price",selectedCar.claculatePrice(days));
+                System.out.println("===================================================\n");
+                System.out.print("Confirm rental(Y/N): ");
+                String Confirmrent =tp.next();
+                if(Confirmrent.equalsIgnoreCase("Y")){
+                    BookedCar(selectedCar, customer, days);
+                    System.out.println("Car booking is done successfully...\n");
+                }else{
+                    System.out.println("\nCar booking is Cancled...\n");
+                }  
+            }catch(Exception e){
+                System.out.println("An error occurred: Please try again");
+                
+            }
             
-        }
-        Car selectedCar=optionCar.get();
-        System.out.println("===================================================");
-        System.out.println("                  BILL RECEIPT                     ");
-        System.out.println("===================================================");
-        System.out.printf("%-20s: %s%n","Customer ID",customer.getId());
-        System.out.printf("%-20s: %s%n","Customer Name",customer.getName());
-        System.out.printf("%-20s: %s%n","Car Brand",selectedCar.getBrand());
-        System.out.printf("%-20s: %s%n","Car Model",selectedCar.getModel());
-        System.out.printf("%-20s: %s%n","Car Perday price",selectedCar.getPricePerDay());
-        System.out.printf("%-20s: %s%n","Rental Days",days);
-        System.out.printf("%-20s: %s%n","Total price",selectedCar.claculatePrice(days));
-        System.out.println("===================================================\n");
-        System.out.print("Confirm rental(Y/N): ");
-        String Confirmrent =ru.next();
-        if(Confirmrent.equalsIgnoreCase("Y")){
-            BookedCar(selectedCar, customer, days);
-            System.out.println("Car booking is done successfully...\n");
-        }else{
-            System.out.println("Car booking is Cancled...\n");
-        }
        
-    }
+}
     
     
     public void history(){
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
         if(bookCarInformations.isEmpty()){
             System.out.println("\nNo car are currentry booked!!");
         }
         else{
              System.out.println("\n===============Here are all the booked cars=================");
-             System.out.println("------------------------------------------------------------------------");
-             System.out.printf("|%-10s|%-20s|%-10s|%-10s|%-5s|%-10s|\n","Car ID","Customer","Car Brand","Model","Days","Amount");
-             System.out.println("------------------------------------------------------------------------");
+             System.out.println("----------------------------------------------------------------------------------------");
+             System.out.printf("|%-10s|%-20s|%-10s|%-10s|%-5s|%-10s|%-15s|\n","Car ID","Customer","Car Brand","Model","Days","Amount","Returning Date");
+             System.out.println("----------------------------------------------------------------------------------------");
              bookCarInformations.forEach(b->{
-                 System.out.printf("|%-10s|%-20s|%-10s|%-10s|%-5s|%-10s|\n",
+                 System.out.printf("|%-10s|%-20s|%-10s|%-10s|%-5s|%-10s|%-15s|\n",
                          b.getCar().getCarId(),b.getCustomer().getName(),
-                         b.getCar().getBrand(),b.getCar().getModel(),b.getDays(),b.getCar().claculatePrice(b.getDays()));
+                         b.getCar().getBrand(),b.getCar().getModel(),b.getDays(),b.getCar().claculatePrice(b.getDays()),LocalDate.now().plusDays(b.getDays()).format(formatter));
              });
-            System.out.println("------------------------------------------------------------------------\n");
+            System.out.println("----------------------------------------------------------------------------------------");
         }
     }
     
@@ -174,8 +200,9 @@ public void displayCustomer() {
     
     
     public void Menu(){
-        try(Scanner tp = new Scanner(System.in) // Close the scanner at the end of the program
-        ) {
+        Scanner tp = new Scanner(System.in);
+        try{
+        
         while(true){
         System.out.println("\n========== Welcome to Our Car Rental Service ==========");
         System.out.println("--------------------------------------------------------");
@@ -187,7 +214,9 @@ public void displayCustomer() {
         System.out.println("|6. Exit                                               |");
         System.out.println("--------------------------------------------------------");
         System.out.print("Please choose an option by entering the corresponding number: ");
+        
         int choice=tp.nextInt();
+            
             switch (choice) {
                 case 1 -> bookingcar();
                     case 2 -> returning();
@@ -203,11 +232,13 @@ public void displayCustomer() {
                 }
             }
             
-        }} catch (Exception e) {
+        } 
+    }catch (Exception e) {
             // TODO: handle exception
-            System.out.println("An error occurred: " + e.getMessage());
+            System.out.println("An error occurred: Please try again");
+           Menu();
         }
         
-       
-    }
+    tp.close();
+}
 }
